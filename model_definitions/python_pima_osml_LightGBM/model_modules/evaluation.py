@@ -88,7 +88,7 @@ def evaluate(context: ModelContext, **kwargs):
     )
     
     print("Evaluating osml...")
-    LightGBM_Classifier = td_lightgbm.Booster(model_file=f"{context.artifact_output_path}/light_gbm")
+    LightGBM_Classifier = td_lightgbm.Booster(model_file=f"{context.artifact_input_path}/light_gbm")
     predict_df = LightGBM_Classifier.predict(data=X_test, label=y_test, num_iteration=20)
     
     # accuracy_dt = LightGBM_Classifier.score(X_test, y_test)

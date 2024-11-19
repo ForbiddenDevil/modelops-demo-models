@@ -46,7 +46,7 @@ def score(context: ModelContext, **kwargs):
     test_df.set_index("PatientId")
 
     print("Scoring using osml...")
-    LightGBM_Classifier = td_lightgbm.Booster(model_file=f"{context.artifact_output_path}/light_gbm")
+    LightGBM_Classifier = td_lightgbm.Booster(model_file=f"{context.artifact_input_path}/light_gbm")
     predict_df = LightGBM_Classifier.predict(X_test)
     
     predict_df = predict_df.assign(prediction = predict_df.booster_predict_1.round(0))
