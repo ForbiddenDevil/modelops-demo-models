@@ -32,6 +32,20 @@ warnings.simplefilter(action='ignore', category=DeprecationWarning)
 warnings.simplefilter(action='ignore', category=UserWarning)
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
+def compute_feature_importance(features, importances):
+    feat_dict = {}
+    for i in range(len(importances)):
+        feat_dict[features[i]] = importances[i]
+    feat_df = pd.DataFrame({'Feature':feat_dict.keys(),'Importance':feat_dict.values()})
+    return feat_df
+
+def plot_feature_importance(fi, img_filename):
+    feat_importances = fi.sort_values(['Importance'], ascending = False)
+    feat_importances.plot(kind='barh', x='Feature', y='Importance').set_title('Feature Importance')
+    fig = plt.gcf()
+    fig.savefig(img_filename, dpi=500)
+    plt.clf()
+
 # Define function to plot a confusion matrix from given data
 def plot_confusion_matrix(cf, img_filename):
     import matplotlib.pyplot as plt
@@ -52,12 +66,13 @@ def plot_confusion_matrix(cf, img_filename):
 def plot_roc_curve(roc_out, img_filename):
     import matplotlib.pyplot as plt
     from sklearn import metrics
-    fpr, tpr, thresholds = metrics.roc_curve(roc_out['HasDiabetes'], roc_out['LightGBMclassifier_predict_1'])
+    fpr, tpr, thresholds = metrics.roc_curve(roc_out['HasDiabetes'], roc_out['booster_predict_1'])
+    auc = metrics.roc_auc_score(roc_out['HasDiabetes'], roc_out['booster_predict_1'])
     plt.plot(fpr,tpr,label="ROC curve AUC="+str(auc), color='darkorange')
     plt.plot([0, 1], [0, 1], color='darkblue', linestyle='--') 
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
-    plt.title('Receiver Operating Characteristic (ROC) Curve')
+    plt.title('Receiver Operatingmetrics. Characteristic (ROC) Curve')
     plt.legend(loc="lower right")
     fig = plt.gcf()
     fig.savefig(img_filename, dpi=200)
@@ -135,23 +150,16 @@ def evaluate(context: ModelContext, **kwargs):
     
     # Generate and save ROC curve plot
     # Predictions are coming out to be negative at times and hence ROC is failing. Need to check.
-    # roc_out = ROC(
-    #     data=predict_df,
-    #     probability_column='booster_predict_1',
-    #     observation_column=target_name,
-    #     positive_class='1',
-    #     num_thresholds=1000
-    # )
+    roc_df = predict_df.loc[predict_df.booster_predict_1 >=0]
+    roc_out = ROC(
+        data=roc_df,
+        probability_column='booster_predict_1',
+        observation_column=target_name,
+        positive_class='1',
+        num_thresholds=1000
+    )
     
-    # plot_roc_curve(predict_df.to_pandas(), f"{context.artifact_output_path}/roc_curve")
-    
-    # Calculate feature importance and generate plot
-    # feature_importance = model.feature_importance()
-    
-    # Plot feature importance using Gain
-    # td_lightgbm.plot_importance(model, importance_type="gain", figsize=(7,6), title="LightGBM Feature Importance (Gain)")
-    # plt.savefig(f"{context.artifact_output_path}/feature_importance")
-    
+    plot_roc_curve(roc_df.to_pandas(), f"{context.artifact_output_path}/roc_curve")
     
     predictions_table = "predictions_tmp"
     copy_to_sql(df=predict_df, table_name=predictions_table, index=False, if_exists="replace", temporary=True)

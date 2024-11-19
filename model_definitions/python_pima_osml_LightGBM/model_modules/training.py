@@ -23,6 +23,20 @@ warnings.filterwarnings('ignore')
 warnings.simplefilter(action='ignore', category=DeprecationWarning)
 warnings.simplefilter(action='ignore', category=UserWarning)
 warnings.simplefilter(action='ignore', category=FutureWarning)
+
+def compute_feature_importance(features, importances):
+    feat_dict = {}
+    for i in range(len(importances)):
+        feat_dict[features[i]] = importances[i]
+    feat_df = pd.DataFrame({'Feature':feat_dict.keys(),'Importance':feat_dict.values()})
+    return feat_df
+
+def plot_feature_importance(fi, img_filename):
+    feat_importances = fi.sort_values(['Importance'], ascending = False)
+    feat_importances.plot(kind='barh', x='Feature', y='Importance').set_title('Feature Importance')
+    fig = plt.gcf()
+    fig.savefig(img_filename, dpi=500)
+    plt.clf()
     
 def train(context: ModelContext, **kwargs):
     aoa_create_context()
@@ -67,9 +81,11 @@ def train(context: ModelContext, **kwargs):
     print("Complete osml training...")
     
     # Calculate feature importance and generate plot
-    # feature_importance = model.feature_importance()
+    imp = model.feature_importance()
+    feature_importance = compute_feature_importance(feature_names, imp)
     
     # Plot feature importance using Gain
+    plot_feature_importance(feature_importance, f"{context.artifact_output_path}/feature_importance")
     # td_lightgbm.plot_importance(model, importance_type="gain", figsize=(7,6), title="LightGBM Feature Importance (Gain)")
     # plt.savefig(f"{context.artifact_output_path}/feature_importance")
     
@@ -78,7 +94,7 @@ def train(context: ModelContext, **kwargs):
         features=feature_names,
         targets=[target_name],
         categorical=[target_name],
-        # feature_importance=feature_importance,
+        feature_importance=feature_importance,
         context=context
     )
     
